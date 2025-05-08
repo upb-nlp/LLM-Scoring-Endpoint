@@ -46,7 +46,7 @@ curl --location 'https://chat.readerbench.com/score/paraphrasing' \
 
 ## Python usage
 
-You can use our code to use the models locally, on your machine. Refer to `examples.py` for an usage example.
+You can use our code to use the models locally, on your machine. Refer to `learning_strategies_scoring/examples.py` for an usage example.
 
 The scoring class (`LLMScoring`) must be instantiated only once (it will load the fine-tuned LLM and initialize the model and tokenizer). At the fist initialization, it will download the model from HuggingFace, and then it will load it every time from local.
 
