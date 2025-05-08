@@ -12,7 +12,7 @@ curl --location 'https://chat.readerbench.com/score/selfexplanation' \
 --data '{
     "context": "The supporting text that the student has read.",
     "target_sentence": "The sentence from the text that the student must write a self-explanation.",
-    "student_response": "The student'\''s self-explanation.",
+    "student_response": "The student'\''s self-explanation."
 }'
 ```
 
@@ -22,7 +22,7 @@ curl --location 'https://chat.readerbench.com/score/thinkaloud' \
 --data '{
     "context": "The supporting text that the student has read.",
     "target_sentence": "The sentence from the text that the student must write their thoughts.",
-    "student_response": "The student'\''s thoughts.",
+    "student_response": "The student'\''s thoughts."
 }'
 ```
 
@@ -31,7 +31,7 @@ curl --location 'https://chat.readerbench.com/score/summary' \
 --header 'Content-Type: application/json' \
 --data '{
     "context": "The supporting text that the student has read.",
-    "student_response": "The student'\''s summary",
+    "student_response": "The student'\''s summary"
 }'
 ```
 
