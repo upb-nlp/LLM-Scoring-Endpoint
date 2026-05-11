@@ -1,0 +1,181 @@
+{
+    "task": "Explain the meaning of the text, elaborating beyond your initial understanding of the text.",
+    "scoring_rubric_list": [
+        "too_short",
+        "irrelevant",
+        "copy_paste",
+        "evaluative_statements",
+        "monitoring",
+        "paraphrasepresence",
+        "bridgingpresence",
+        "elaborationpresence",
+        "intertext",
+        "source_presence",
+        "source_evaluation",
+        "overall"
+  ],
+    "scoring_rubric": {
+        "too_short": {
+            "name": "Too short",
+            "scores": {
+                "0": "Good",
+                "1": "Too short"
+            },
+            "scores_description": {
+                "0": "Explanation contains sufficient content.",
+                "1": "Contains fewer than or about 12 characters."            
+            }
+        },
+        "irrelevant": {
+            "name": "Irrelevant",
+            "scores": {
+                "0": "Irrelevant",
+                "1": "Average",
+                "2": "Good"
+            },
+            "scores_description": {
+                "2": "Contains only nonwords or meaningless sequences (e.g., key-mashing), OR contains information unrelated to the text (e.g., “This is boring.” or “I'm thinking about dinner.”), OR random configurations of words from the text without meaning.",
+                "1": "Contains some nonwords or meaningless sequences OR contains some unrelated/irrelevant content but also contains additional information that is relevant to the text and can be coded in the remaining categories.",
+                "0": "Explanation contains sufficient, relevant content to score."
+            }
+        },
+        "copy_paste": {
+            "name": "Copy-paste presence",
+            "scores": {
+                "0": "Not present",
+                "1": "Partial",
+                "2": "Present"
+            },
+            "scores_description": {
+                "2": "Complete overlap with the text (target sentence or previous sentences overlap > 90%).",
+                "1": "Partial overlap with signs of copying or retyping (approx 50-90% overlap).",
+                "0": "No evidence of copying or retyping."
+            }
+        },
+        "evaluative_statements": {
+            "name": "Evaluative statements / affect",
+            "scores": {
+                "BLANK": "Not applicable",
+                "0": "Not present",
+                "1": "Partial",
+                "2": "Present"
+            },
+            "scores_description": {
+                "2": "Contains only evaluative statements, value assessment statements, or opinion statements related to the text (e.g., “That's really bad.” or “I don't think the plan will work.”).",
+                "1": "Contains some evaluative statements, value assessment statements, or opinion statements related to the text, but also contains additional information that will be coded in the remaining categories.",
+                "0": "No evidence of value assessment statements.",
+                "BLANK": "Not applicable"
+            }
+        },
+        "monitoring": {
+            "name": "Self-monitoring",
+            "scores": {
+                "BLANK": "Not applicable",
+                "0": "Not present",
+                "1": "Present"
+            },
+            "scores_description": {
+                "0": "Self-monitoring not present.",
+                "1": "Includes evidence of monitoring comprehension such as a statement (\"I don't know\", \"I wonder\", \"how can they do that\", \"that makes sense\") or questions asked about the text.",
+                "BLANK": "Not applicable"
+            }
+        },
+        "paraphrasepresence": {
+            "name": "Paraphrase presence",
+            "scores": {
+                "BLANK": "Not applicable",
+                "0": "Not present",
+                "1": "Present",
+                "2": "Good"
+            },
+            "scores_description": {
+                "0": "Paraphrase not present.",
+                "1": "Contains at least one full clause that overlaps; may include single words; contains some of (about half) of the main idea units from the target sentence.",
+                "2": "Contains most of (50% or more) of the main idea units from the target sentence.",
+                "BLANK": "Not applicable"
+            }
+        },
+        "bridgingpresence": {
+            "name": "Bridge presence",
+            "scores": {
+                "BLANK": "Not applicable",
+                "0": "Not present",
+                "1": "Present",
+                "2": "Good"
+            },
+            "scores_description": {
+                "0": "Bridge not present.",
+                "1": "Includes anaphoric reference or one or two words from text prior to the target sentence in the current source text.",
+                "2": "Includes a complete idea that is from the text prior to the target sentence in the current source text.",
+                "BLANK": "Not applicable"
+            }
+        },
+        "elaborationpresence": {
+            "name": "Elaboration presence",
+            "scores": {
+                "BLANK": "Not applicable",
+                "0": "Not present",
+                "1": "Present",
+                "2": "Good"
+            },
+            "scores_description": {
+                "0": "Paraphrase not present.",
+                "1": "Contains at least one full clause that overlaps; may include single words; contains some of (about half) of the main idea units from the target sentence.",
+                "2": "Contains most of (50% or more) of the main idea units from the target sentence.",
+                "BLANK": "Not applicable"
+            }
+        },
+        "intertext": {
+            "name": "Inter-textual References",
+            "scores": {
+                "0": "Not present",
+                "1": "Present"
+            },
+            "scores_description": {
+                "0": "Doesn't seem like there is reference to the other texts in the set.",
+                "1": "Seems like this might be referring to other texts in the set."
+            }
+        },
+        "source_presence": {
+            "name": "Source Presence (Sourcing)",
+            "scores": {
+                "0": "Not present",
+                "1": "Present",
+                "2": "Good"
+            },
+            "scores_description": {
+                "0": "Absence of sourcing.",
+                "1": "Vague presence of sourcing (includes non-specific source information: e.g., 'the author states', 'the source', 'the title suggests', 'very old text').",
+                "2": "Titular, nominal, or specific information about the source given (e.g., specific author name, author title, job title or description, venue or publication name, specific date—even just the year—or other indicators of where the information comes from), OR 3+ distinct vague source mentions."
+            }
+        },
+        "source_evaluation": {
+            "name": "Source Evaluation",
+            "scores": {
+                "0": "Not present",
+                "1": "Present"
+            },
+            "scores_description": {
+                "0": "Absence of sourcing evaluation.",
+                "1": "Presence of sourcing evaluation. The student critiques or evaluates the source itself and/or the text (e.g., author motivation, stance, data quality, venue, publication date, or assessment of writing style and its effect)."
+            }
+        },
+        "overall": {
+            "name": "Overall Self-Explanation Quality",
+            "scores": {
+                "BLANK": "Not applicable",
+                "0": "Poor",
+                "1": "Fair quality",
+                "2": "Good quality",
+                "3": "Great"
+            },
+            "scores_description": {
+                "0": "Constructed responses that contain unrelated or non-informative information or are very short or too similar to the target sentence.",
+                "1": "Fair quality: Responses that either (1) focus only on the target sentence (paraphrase, monitoring, brief related idea, brief prediction), OR (2) show unclear/incoherent or weak connections to other parts of the text.",
+                "2": "Responses that include 1-2 ideas from text outside the target sentence (local bridging, brief elaboration, weak distal bridges).",
+                "3": "High-quality responses that incorporate information at a global level (high-quality local bridges, distal bridging, or meaningful elaborations).",
+                "BLANK": "Not applicable"
+            }
+        }
+    }
+}

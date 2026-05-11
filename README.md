@@ -1,6 +1,6 @@
 # INFLO LLM Scoring Integration
 
-The API for scoring a student response (self-explanation, think-aloud, summary or paraphrasing). The model will return a dictionarry with scores across multiple rubrics. For explanations on what those scores mean, please refer to `learning_strategies_scoring/scoring_details`. 
+The API for scoring a student response (self-explanation, think-aloud, summary, paraphrasing, or multi-text self-explanation). The model will return a dictionarry with scores across multiple rubrics. For explanations on what those scores mean, please refer to `learning_strategies_scoring/scoring_details`. 
 
 ## API usage
 
@@ -41,6 +41,16 @@ curl --location 'https://chat.readerbench.com/score/paraphrasing' \
 --data '{
     "target_sentence": "The support sentence.",
     "student_response": "The student'\''s paraphrasing."
+}'
+```
+
+```c
+curl --location 'https://chat.readerbench.com/score/selfexplanation_multitext' \
+--header 'Content-Type: application/json' \
+--data '{
+    "context": "The supporting multi-text content the student has read (e.g., several sources on a topic).",
+    "target_sentence": "The sentence from the text that the student must write a self-explanation.",
+    "student_response": "The student'\''s self-explanation."
 }'
 ```
 
@@ -87,5 +97,14 @@ task = 'paraphrasing'
 data = {
     'target_sentence': "The support sentence.",
     'student_response': "The student's paraphrasing.",
+}
+```
+
+```python
+task = 'selfexplanation_multitext'
+data = {
+    'context': "The supporting multi-text content the student has read (e.g., several sources on a topic).",
+    'target_sentence': "The sentence from the text that the student must write a self-explanation.",
+    'student_response': "The student's self-explanation.",
 }
 ```

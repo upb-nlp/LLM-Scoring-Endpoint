@@ -1,4 +1,5 @@
 __pycache__
 env
 *.json
+!learning_strategies_scoring/scoring_details/*.json
 *.html

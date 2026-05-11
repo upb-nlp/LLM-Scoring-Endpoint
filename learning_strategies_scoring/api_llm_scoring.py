@@ -117,6 +117,15 @@ class LLMScoring:
 
             prompt = f"{scoring_start_prompt}\n\n### Task description: {task_prompt}\n\n- Context: {data['context']}\n\n- Phrase: {data['target_sentence']}\n\n### Execution: {data['student_response']}\n\n### Scoring rubric:\n{scoring_rubric_prompt}"
 
+        elif task == 'selfexplanation_multitext':
+            if 'context' not in data or 'target_sentence' not in data or 'student_response' not in data:
+                raise ValueError('Data must contain context, target_sentence, and student_response fields')
+
+            scoring_details = json.load(open(path.join(self.scoring_details_dir, 'se_improved.json'), 'r'))
+            task_prompt, scoring_rubric_prompt = self.prepare_scoring_rubric_prompt(scoring_details)
+
+            prompt = f"{scoring_start_prompt}\n\n### Task description: {task_prompt}\n\n- Context: {data['context']}\n\n- Phrase: {data['target_sentence']}\n\n### Execution: {data['student_response']}\n\n### Scoring rubric:\n{scoring_rubric_prompt}"
+
         elif task == 'summary':
             if 'context' not in data or 'student_response' not in data:
                 raise ValueError('Data must contain context and student_response fields')
@@ -167,6 +176,7 @@ class LLMScoring:
             'thinkaloud': 'selfexplanation_thinkaloud_full_ta.json',
             'summary': 'summaries_aloe.json',
             'paraphrasing': 'paraphrasing_ulpc.json',
+            'selfexplanation_multitext': 'se_improved.json',
         }
         with open(path.join(self.scoring_details_dir, task_to_file[task]), 'r') as f:
             return json.load(f)
@@ -280,6 +290,8 @@ class LLMScoring:
             return garbage != 'Not present' or frozen != 'Not present' or irrelevant != 'Relevant'
         elif task in ('selfexplanation', 'thinkaloud'):
             return scores.get('Overall', '') == 'Poor'
+        elif task == 'selfexplanation_multitext':
+            return scores.get('Overall Self-Explanation Quality', '') == 'Poor'
         return False
 
     def feedback(self, data, task, is_retry=False):

@@ -5,12 +5,14 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 device = "cuda"
-scorer = LLMScoring('upb-nlp/llama32_3b_scoring_all_tasks')
+scorer = LLMScoring('upb-nlp/qwen3_4b_scoring_all_tasks_with_se_improved')
+
+VALID_TASKS = ["selfexplanation", "thinkaloud", "summary", "paraphrasing", "selfexplanation_multitext"]
 
 @app.route('/score/<task>', methods=['POST'] )
 def score(task):
-    if task not in ["selfexplanation", "thinkaloud", "summary", "paraphrasing"]:
-        return "Invalid Task (should be one of: 'selfexplanation', 'thinkaloud', 'summary', 'paraphrasing')", 400
+    if task not in VALID_TASKS:
+        return f"Invalid Task (should be one of: {VALID_TASKS})", 400
     args = request.json
     try:
         prediction = scorer.score(args, task)
