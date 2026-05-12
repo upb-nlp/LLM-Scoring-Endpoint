@@ -37,34 +37,71 @@ class LLMScoring:
         Returns:
             str: Generated response
         """
-        messages = [{"role": "user", "content": formatted_prompt}]
-        response = self.model.chat(messages, self.params)
-        
-        return response[0].outputs[0].text
+        tokenizer = self.model.get_tokenizer()
+        text = tokenizer.apply_chat_template(
+            [{"role": "user", "content": formatted_prompt}],
+            add_special_tokens=False,
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        response = self.model.generate([text], self.params)
+        raw = response[0].outputs[0].text
+        return raw
     
-    def extract_score_from_response(self, response):
+    def extract_score_from_response(self, response, scoring_details=None):
         """
         response: str
             Response from the model
+        scoring_details: dict, optional
+            Scoring rubric. When provided, criterion names and values are
+            validated against the rubric so that rubric description lines the
+            model sometimes echoes back are ignored.
 
         Returns:
             dict: Dictionary containing the scores
         """
-        lines = response.split('\n')
+        response = response.replace('<|endoftext|>', '').replace('<|im_start|>', '')
+
+        valid_criteria = {}
+        if scoring_details is not None:
+            for entry in scoring_details['scoring_rubric'].values():
+                valid_criteria[entry['name']] = set(entry['scores'].values())
 
         scores = {}
-        for line in lines:
-            if line.startswith('- '):
-                # Remove <|endoftext|> from the line if it exists
-                line = line.replace('<|endoftext|>', '')
-                line = line.replace('<|im_start|>', '')
-                                
-                try:
-                    key, value = line.split(': ')
-                    if key[2:] not in scores:
-                        scores[key[2:]] = value
-                except:
-                    pass
+
+        def _add(key, value):
+            key = key.strip()
+            value = value.strip()
+            if not key or not value:
+                return
+            if valid_criteria:
+                if key not in valid_criteria:
+                    return
+                if value not in valid_criteria[key]:
+                    return
+            if key not in scores:
+                scores[key] = value
+
+        if '\n' not in response:
+            # Model emitted everything on a single line: "- Foo: A - Bar: B ..."
+            for fragment in response.split('- '):
+                if ': ' not in fragment:
+                    continue
+                key, value = fragment.split(': ', 1)
+                _add(key, value)
+        else:
+            for line in response.split('\n'):
+                # Skip rubric description lines like "- - Good: ..." that the
+                # model occasionally echoes from the prompt.
+                if line.startswith('- - '):
+                    continue
+                if not line.startswith('- '):
+                    continue
+                if ': ' not in line:
+                    continue
+                key, value = line.split(': ', 1)
+                _add(key[2:], value)
+
         return scores
     
     def prepare_scoring_rubric_prompt(self, scoring_details):
@@ -159,7 +196,8 @@ class LLMScoring:
         
         formatted_prompt = self.prepare_prompt(data, task)
         response = self.generate_response(formatted_prompt)
-        scores = self.extract_score_from_response(response)
+        scoring_details = self._get_scoring_details(task)
+        scores = self.extract_score_from_response(response, scoring_details)
 
         return scores
 
