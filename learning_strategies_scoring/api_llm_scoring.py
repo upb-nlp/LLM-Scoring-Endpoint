@@ -332,7 +332,65 @@ class LLMScoring:
             return scores.get('Overall Self-Explanation Quality', '') == 'Poor'
         return False
 
-    def feedback(self, data, task, is_retry=False):
+    def _scores_a_bit_low(self, scores, task):
+        """
+        Determines if scores indicate room for improvement that does not warrant
+        prompting a retry — i.e. the response is not failing, but a paraphrase
+        example could still help the student.
+
+        Returns:
+            bool
+        """
+        if task == 'paraphrasing':
+            return scores.get('Paraphrase Quality', '') == 'Poor' or scores.get('Writing Quality', '') == 'Poor'
+        elif task in ('selfexplanation', 'thinkaloud'):
+            return scores.get('Overall', '') == 'Satisfactory'
+        elif task == 'selfexplanation_multitext':
+            return scores.get('Overall Self-Explanation Quality', '') == 'Fair quality'
+        return False
+
+    def _build_evolution_prompt(self, data, task, scores, previous_answer, scoring_details):
+        """
+        Builds the prompt asking the feedback model to comment in one sentence on
+        whether the retry attempt improved compared to the previous attempt.
+
+        previous_answer: dict
+            Must contain at least 'student_response' and 'scores'. May also contain
+            'feedback' (the feedback previously shown to the student).
+
+        Returns:
+            str: The evolution prompt
+        """
+        previous_scores_summary = self._build_scores_summary(
+            previous_answer.get('scores', {}), scoring_details
+        )
+        current_scores_summary = self._build_scores_summary(scores, scoring_details)
+
+        previous_feedback = previous_answer.get('feedback', '')
+        previous_feedback_block = (
+            f"Previous feedback given to the student:\n{previous_feedback}\n\n"
+            if previous_feedback else ""
+        )
+
+        prompt = (
+            f"You are comparing two attempts a student made at the same {task} task.\n\n"
+            f"Previous attempt:\n"
+            f"- Response: {previous_answer.get('student_response', '')}\n"
+            f"- Scores:\n{previous_scores_summary}\n\n"
+            f"{previous_feedback_block}"
+            f"Current attempt (retry):\n"
+            f"- Response: {data['student_response']}\n"
+            f"- Scores:\n{current_scores_summary}\n\n"
+            f"In exactly one sentence, comment on how the current response evolved compared "
+            f"to the previous one — whether it improved, stayed roughly the same, or got worse. "
+            f"Address the student directly using \"you\". Base the comment only on observable "
+            f"differences between the two responses and their scores; use tentative language "
+            f"(e.g. \"your response appears to...\", \"it seems...\") and do not make strong "
+            f"claims about the student's understanding or effort. Return only that one sentence."
+        )
+        return prompt
+
+    def feedback(self, data, task, previous_answer=None):
         """
         Scores the student response and generates friendly feedback using a vLLM model.
 
@@ -340,8 +398,11 @@ class LLMScoring:
             Data to be used for scoring (same as score method)
         task: str
             Task to be scored (same as score method)
-        is_retry: bool
-            If True, the student is retrying — do not prompt to try again a second time.
+        previous_answer: dict, optional
+            The student's previous attempt for this task. None on the first attempt,
+            filled in on a retry. Expected keys: 'student_response', 'scores',
+            and optionally 'feedback'. When provided, the function emits an
+            additional one-sentence comment on how the response evolved.
 
         Returns:
             dict: Dictionary containing 'scores' (dict), 'feedback' (str), and 'try_again' (bool)
@@ -358,14 +419,26 @@ class LLMScoring:
         response = self.feedback_model.chat(messages, self.feedback_params)
         feedback_text = response[0].outputs[0].text
 
+        is_retry = previous_answer is not None
+
+        if is_retry:
+            evolution_prompt = self._build_evolution_prompt(
+                data, task, scores, previous_answer, scoring_details
+            )
+            evolution_response = self.feedback_model.chat(
+                [{"role": "user", "content": evolution_prompt}], self.feedback_params
+            )
+            evolution_comment = evolution_response[0].outputs[0].text.strip()
+            feedback_text = f"{evolution_comment} {feedback_text}"
+
         try_again = False
         if self._should_try_again(scores, task) and not is_retry:
-            try_again_msg = " Can you try again?"
-            if 'target_sentence' in data:
-                paraphrased = self._generate_paraphrase(data['target_sentence'])
-                try_again_msg += f" Here is a rephrased version of the sentence to help you: {paraphrased}"
-            feedback_text += try_again_msg
+            feedback_text += " Can you try again?"
             try_again = True
+
+        if not try_again and self._scores_a_bit_low(scores, task) and 'target_sentence' in data:
+            paraphrased = self._generate_paraphrase(data['target_sentence'])
+            feedback_text += f" Here is a rephrased version of the sentence to help you: {paraphrased}"
 
         return {
             'scores': scores,

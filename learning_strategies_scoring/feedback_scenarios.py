@@ -50,6 +50,172 @@ CLIMATE_MULTITEXT_CONTEXT = (
 )
 
 # ---------------------------------------------------------------------------
+# Reusable "previous attempt" payloads for retry scenarios.
+#
+# Each retry scenario passes a `previous_answer` dict to feedback() containing
+# the student's prior response, the scores it received, and the feedback they
+# were shown. The feedback() function uses this to emit a one-sentence
+# "evolution" comment comparing the two attempts.
+# ---------------------------------------------------------------------------
+
+PREV_PARA_GARBAGE = {
+    'student_response': ',m.',
+    'scores': {
+        'Garbage Content': 'Too much',
+        'Frozen Expressions': 'Not present',
+        'Irrelevant': 'Irrelevant',
+        'Elaboration': 'Not present/Poor',
+        'Semantic Completeness': 'Not present/Poor',
+        'Entailment': 'Not present/Poor',
+        'Syntactic Similarity': 'Not present',
+        'Lexical Similarity': 'Not present',
+        'Paraphrase Quality': 'Poor',
+        'Writing Quality': 'Poor',
+    },
+    'feedback': "Your response is very short and does not appear to address the target sentence. It may help to read the sentence again and write a complete rephrasing in your own words. Can you try again?",
+}
+
+PREV_PARA_VERY_POOR = {
+    'student_response': '2/3 OF HUMANS REST.',
+    'scores': {
+        'Garbage Content': 'Not present',
+        'Frozen Expressions': 'Not present',
+        'Irrelevant': 'Somewhat relevant',
+        'Elaboration': 'Not present/Poor',
+        'Semantic Completeness': 'Not present/Poor',
+        'Entailment': 'Not present/Poor',
+        'Syntactic Similarity': 'Not present',
+        'Lexical Similarity': 'Not present',
+        'Paraphrase Quality': 'Poor',
+        'Writing Quality': 'Poor',
+    },
+    'feedback': "Your response appears to drop most of the meaning of the original sentence. It may help to include all the key ideas — what generates the heat and where. Can you try again?",
+}
+
+PREV_PARA_RANDOM_CHARS = {
+    'student_response': '!!!???@@@###',
+    'scores': {
+        'Garbage Content': 'Too much',
+        'Frozen Expressions': 'Not present',
+        'Irrelevant': 'Irrelevant',
+        'Elaboration': 'Not present/Poor',
+        'Semantic Completeness': 'Not present/Poor',
+        'Entailment': 'Not present/Poor',
+        'Syntactic Similarity': 'Not present',
+        'Lexical Similarity': 'Not present',
+        'Paraphrase Quality': 'Poor',
+        'Writing Quality': 'Poor',
+    },
+    'feedback': "Your response does not appear to contain any words from the target sentence. It may help to write the rephrasing as a full sentence. Can you try again?",
+}
+
+PREV_PARA_IMPROVABLE = {
+    'student_response': "Red blood cells lack a nucleus and the organelles in other cells.",
+    'scores': {
+        'Garbage Content': 'Not present',
+        'Frozen Expressions': 'Not present',
+        'Irrelevant': 'Relevant',
+        'Elaboration': 'Not present/Poor',
+        'Semantic Completeness': 'Good',
+        'Entailment': 'Good',
+        'Syntactic Similarity': 'Not present',
+        'Lexical Similarity': 'Too much',
+        'Paraphrase Quality': 'Poor',
+        'Writing Quality': 'Good',
+    },
+    'feedback': "Your response keeps the meaning but reuses most of the wording. It may help to replace shared words with synonyms and restructure the sentence.",
+}
+
+PREV_SE_OK = {
+    'student_response': 'ok',
+    'scores': {
+        'Paraphrase presence': 'Not present',
+        'Lexical change': 'Not applicable',
+        'Syntactic change': 'Not applicable',
+        'Misconception': 'Not applicable',
+        'Monitoring': 'Not applicable',
+        'Bridge presence': 'Not present/Poor',
+        'Bridge contribution': 'Not applicable',
+        'Elaboration presence': 'Not present',
+        'Life event': 'Not present',
+        'Overall': 'Poor',
+    },
+    'feedback': "Your response is very short and does not appear to engage with the target sentence. It may help to explain what the sentence means in your own words. Can you try again?",
+}
+
+PREV_SE_GIBBERISH = {
+    'student_response': 'asjdkasjd ajsdklasd',
+    'scores': {
+        'Paraphrase presence': 'Not present',
+        'Lexical change': 'Not applicable',
+        'Syntactic change': 'Not applicable',
+        'Misconception': 'Not applicable',
+        'Monitoring': 'Not applicable',
+        'Bridge presence': 'Not present/Poor',
+        'Bridge contribution': 'Not applicable',
+        'Elaboration presence': 'Not present',
+        'Life event': 'Not present',
+        'Overall': 'Poor',
+    },
+    'feedback': "Your response does not appear to address the target sentence. It may help to write a sentence or two explaining what it means. Can you try again?",
+}
+
+PREV_SE_BORDERLINE = {
+    'student_response': "Heart attacks happen when something gets blocked.",
+    'scores': {
+        'Paraphrase presence': 'Present',
+        'Lexical change': 'Present',
+        'Syntactic change': 'Present',
+        'Misconception': 'Not present',
+        'Monitoring': 'Not applicable',
+        'Bridge presence': 'Not present/Poor',
+        'Bridge contribution': 'Not applicable',
+        'Elaboration presence': 'Not present',
+        'Life event': 'Not present',
+        'Overall': 'Satisfactory',
+    },
+    'feedback': "Your response captures the basic idea but stays close to the surface. It may help to connect this to the role of coronary arteries described earlier in the text.",
+}
+
+PREV_SE_MULTITEXT_GIBBERISH = {
+    'student_response': 'asdfasdf zzzz qwerty',
+    'scores': {
+        'Too short': 'Good',
+        'Irrelevant': 'Irrelevant',
+        'Copy-paste presence': 'Not present',
+        'Evaluative statements / affect': 'Not present',
+        'Self-monitoring': 'Not present',
+        'Paraphrase presence': 'Not present',
+        'Bridge presence': 'Not present',
+        'Elaboration presence': 'Not present',
+        'Inter-textual References': 'Not present',
+        'Source Presence (Sourcing)': 'Not present',
+        'Source Evaluation': 'Not present',
+        'Overall Self-Explanation Quality': 'Poor',
+    },
+    'feedback': "Your response does not appear to address the target sentence. It may help to use details from the sources to explain it. Can you try again?",
+}
+
+PREV_SE_MULTITEXT_BORDERLINE = {
+    'student_response': "Ice melting will let ships pass through.",
+    'scores': {
+        'Too short': 'Good',
+        'Irrelevant': 'Average',
+        'Copy-paste presence': 'Not present',
+        'Evaluative statements / affect': 'Not present',
+        'Self-monitoring': 'Not present',
+        'Paraphrase presence': 'Present',
+        'Bridge presence': 'Not present',
+        'Elaboration presence': 'Not present',
+        'Inter-textual References': 'Not present',
+        'Source Presence (Sourcing)': 'Not present',
+        'Source Evaluation': 'Not present',
+        'Overall Self-Explanation Quality': 'Fair quality',
+    },
+    'feedback': "Your response paraphrases the main idea but stays brief. It may help to link this to information from the other sources about Arctic shipping routes.",
+}
+
+# ---------------------------------------------------------------------------
 # Define all scenarios
 # ---------------------------------------------------------------------------
 
@@ -57,132 +223,132 @@ scenarios = []
 
 # =================== PARAPHRASING ===================
 
-# 1. Good paraphrase with syntactic change -- expect no retry
+# 1. Good paraphrase with syntactic change -- expect no retry, no paraphrase example
 scenarios.append({
     'name': 'paraphrasing_good_syntactic_change',
     'task': 'paraphrasing',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "One of the most harmful air pollutants is acid rain, a mixture of acid and water that falls to earth.",
         'student_response': "A combination of acid and water that falls upon the ground is a harmful pollutant called acid rain.",
     },
 })
 
-# 2. Decent paraphrase -- expect no retry
+# 2. Decent paraphrase -- expect no retry, no paraphrase example
 scenarios.append({
     'name': 'paraphrasing_decent',
     'task': 'paraphrasing',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Sometimes blood does not transport enough oxygen, resulting in a condition called anemia.",
         'student_response': "Anemia is caused when the blood doesn't transport enough oxygen.",
     },
 })
 
-# 3. Garbage input -- expect retry with paraphrase
+# 3. Garbage input -- expect retry, no paraphrase example (paraphrase is only for non-retry borderline cases)
 scenarios.append({
     'name': 'paraphrasing_garbage',
     'task': 'paraphrasing',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Red blood cells have the vital role of carrying oxygen to all of the cells in the body.",
         'student_response': ",m.",
     },
 })
 
-# 4. Garbage input as retry -- should NOT get try-again prompt
+# 4. Garbage input as retry -- should NOT get try-again prompt; should get evolution comment ("not improved")
 scenarios.append({
     'name': 'paraphrasing_garbage_retry',
     'task': 'paraphrasing',
-    'is_retry': True,
+    'previous_answer': PREV_PARA_GARBAGE,
     'data': {
         'target_sentence': "Red blood cells have the vital role of carrying oxygen to all of the cells in the body.",
         'student_response': "asdf asdf",
     },
 })
 
-# 5. Very poor attempt, incomplete meaning -- expect retry with paraphrase
+# 5. Very poor attempt, incomplete meaning -- expect retry
 scenarios.append({
     'name': 'paraphrasing_very_poor',
     'task': 'paraphrasing',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Over two thirds of heat generated by a resting human is created by organs of the thoracic and abdominal cavities and the brain.",
         'student_response': "2/3 OF HUMANS REST.",
     },
 })
 
-# 6. Very poor attempt as retry -- should NOT get try-again prompt
+# 6. Retry that mildly improves on the very-poor attempt -- evolution comment should note slight improvement
 scenarios.append({
     'name': 'paraphrasing_very_poor_retry',
     'task': 'paraphrasing',
-    'is_retry': True,
+    'previous_answer': PREV_PARA_VERY_POOR,
     'data': {
         'target_sentence': "Over two thirds of heat generated by a resting human is created by organs of the thoracic and abdominal cavities and the brain.",
         'student_response': "Humans rest a lot and produce heat.",
     },
 })
 
-# 7. Frozen / copy-paste -- expect retry with paraphrase
+# 7. Frozen / copy-paste -- expect retry
 scenarios.append({
     'name': 'paraphrasing_frozen_copypaste',
     'task': 'paraphrasing',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "The disk shape of red blood cells results in a large surface area, which enables them to be efficient at gas diffusion.",
         'student_response': "The disk shape of red blood cells results in a large surface area, which enables them to be efficient at gas diffusion.",
     },
 })
 
-# 8. Irrelevant response -- expect retry with paraphrase
+# 8. Irrelevant response -- expect retry
 scenarios.append({
     'name': 'paraphrasing_irrelevant',
     'task': 'paraphrasing',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Hemoglobin binds to the oxygen and carbon dioxide that the red blood cells transport.",
         'student_response': "I had pizza for lunch and it was delicious.",
     },
 })
 
-# 9. Partial paraphrase, some frozen expressions -- might trigger retry
+# 9. Partial paraphrase, lexically similar -- borderline low: no retry but expect paraphrase example
 scenarios.append({
     'name': 'paraphrasing_partial_frozen',
     'task': 'paraphrasing',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Red blood cells lack a nucleus and the organelles found in other cells.",
         'student_response': "Red blood cells lack a nucleus and the organelles that other cells have.",
     },
 })
 
-# 10. Good paraphrase with meaning preserved -- expect no retry
+# 10. Good paraphrase with meaning preserved -- expect no retry, no paraphrase example
 scenarios.append({
     'name': 'paraphrasing_good_meaning_preserved',
     'task': 'paraphrasing',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Each red blood cell contains about 250 million hemoglobin molecules, each carrying four molecules of oxygen.",
         'student_response': "A single red blood cell holds roughly 250 million hemoglobin molecules, and every one of them transports four oxygen molecules.",
     },
 })
 
-# 11. Random characters -- expect retry with paraphrase
+# 11. Random characters -- expect retry
 scenarios.append({
     'name': 'paraphrasing_random_chars',
     'task': 'paraphrasing',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Iron from the broken-down cells is returned to the bone marrow to be recycled into new hemoglobin.",
         'student_response': "!!!???@@@###",
     },
 })
 
-# 12. Random characters as retry -- should NOT get try-again prompt
+# 12. Random characters as retry -- should NOT get try-again prompt; evolution should note no improvement
 scenarios.append({
     'name': 'paraphrasing_random_chars_retry',
     'task': 'paraphrasing',
-    'is_retry': True,
+    'previous_answer': PREV_PARA_RANDOM_CHARS,
     'data': {
         'target_sentence': "Iron from the broken-down cells is returned to the bone marrow to be recycled into new hemoglobin.",
         'student_response': "zzzz zzz zz",
@@ -193,10 +359,32 @@ scenarios.append({
 scenarios.append({
     'name': 'paraphrasing_single_word',
     'task': 'paraphrasing',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Anemia can result from too little iron in the diet, loss of blood due to injury or menstruation, or various medical conditions.",
         'student_response': "anemia",
+    },
+})
+
+# 13b. Borderline-low paraphrase, lexically too similar -- no retry, expect paraphrase example
+scenarios.append({
+    'name': 'paraphrasing_borderline_low',
+    'task': 'paraphrasing',
+    'previous_answer': None,
+    'data': {
+        'target_sentence': "Hemoglobin also contains iron, which gives blood its red color.",
+        'student_response': "Hemoglobin contains iron, which gives blood its red color.",
+    },
+})
+
+# 13c. Improved paraphrase as retry of a lexically-too-similar first attempt -- evolution should note improvement
+scenarios.append({
+    'name': 'paraphrasing_improved_retry',
+    'task': 'paraphrasing',
+    'previous_answer': PREV_PARA_IMPROVABLE,
+    'data': {
+        'target_sentence': "Red blood cells lack a nucleus and the organelles found in other cells.",
+        'student_response': "Unlike other cells, red blood cells do not have a nucleus or the small structures normally found inside.",
     },
 })
 
@@ -206,7 +394,7 @@ scenarios.append({
 scenarios.append({
     'name': 'selfexplanation_excellent_bridging',
     'task': 'selfexplanation',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "The shape of the cells causes them to clog blood vessels, preventing oxygen from reaching muscles and other tissues.",
         'context': RBC_CONTEXT,
@@ -218,7 +406,7 @@ scenarios.append({
 scenarios.append({
     'name': 'selfexplanation_good_elaboration',
     'task': 'selfexplanation',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Sometimes blood does not transport enough oxygen, resulting in a condition called anemia.",
         'context': RBC_CONTEXT,
@@ -226,11 +414,11 @@ scenarios.append({
     },
 })
 
-# 16. Basic paraphrase only, no deeper processing -- borderline
+# 16. Basic paraphrase only, no deeper processing -- borderline, may get paraphrase example
 scenarios.append({
     'name': 'selfexplanation_basic_paraphrase',
     'task': 'selfexplanation',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "A congenital disease is one with which a person is born.",
         'context': HD_CONTEXT,
@@ -242,7 +430,7 @@ scenarios.append({
 scenarios.append({
     'name': 'selfexplanation_detailed_connections',
     'task': 'selfexplanation',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "The blood becomes purplish, and the baby's skin looks blue.",
         'context': HD_CONTEXT,
@@ -250,11 +438,11 @@ scenarios.append({
     },
 })
 
-# 18. Poor / no effort -- expect retry with paraphrase
+# 18. Poor / no effort -- expect retry
 scenarios.append({
     'name': 'selfexplanation_poor_no_effort',
     'task': 'selfexplanation',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Hemoglobin also contains iron, which gives blood its red color.",
         'context': RBC_CONTEXT,
@@ -262,11 +450,11 @@ scenarios.append({
     },
 })
 
-# 19. Poor / no effort as retry -- should NOT get try-again prompt
+# 19. Poor / no effort as retry -- should NOT get try-again prompt; evolution should note no improvement
 scenarios.append({
     'name': 'selfexplanation_poor_no_effort_retry',
     'task': 'selfexplanation',
-    'is_retry': True,
+    'previous_answer': PREV_SE_OK,
     'data': {
         'target_sentence': "Hemoglobin also contains iron, which gives blood its red color.",
         'context': RBC_CONTEXT,
@@ -274,11 +462,11 @@ scenarios.append({
     },
 })
 
-# 20. Off-topic response -- expect retry with paraphrase
+# 20. Off-topic response -- expect retry
 scenarios.append({
     'name': 'selfexplanation_offtopic',
     'task': 'selfexplanation',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Red blood cells live for about three or four months before being broken down in the spleen.",
         'context': RBC_CONTEXT,
@@ -286,11 +474,11 @@ scenarios.append({
     },
 })
 
-# 21. Gibberish response -- expect retry with paraphrase
+# 21. Gibberish response -- expect retry
 scenarios.append({
     'name': 'selfexplanation_gibberish',
     'task': 'selfexplanation',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Therefore, most oxygen is carried by hemoglobin.",
         'context': RBC_CONTEXT,
@@ -298,11 +486,11 @@ scenarios.append({
     },
 })
 
-# 22. Gibberish as retry -- should NOT get try-again prompt
+# 22. Gibberish as retry -- should NOT get try-again prompt; evolution should note no improvement
 scenarios.append({
     'name': 'selfexplanation_gibberish_retry',
     'task': 'selfexplanation',
-    'is_retry': True,
+    'previous_answer': PREV_SE_GIBBERISH,
     'data': {
         'target_sentence': "Therefore, most oxygen is carried by hemoglobin.",
         'context': RBC_CONTEXT,
@@ -310,11 +498,11 @@ scenarios.append({
     },
 })
 
-# 23. Minimal but on-topic -- borderline
+# 23. Minimal but on-topic -- borderline (Overall likely Satisfactory), may get paraphrase example
 scenarios.append({
     'name': 'selfexplanation_minimal_ontopic',
     'task': 'selfexplanation',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "The most common heart problem is a heart attack, or coronary thrombosis, which is caused when a coronary artery becomes blocked.",
         'context': HD_CONTEXT,
@@ -322,11 +510,23 @@ scenarios.append({
     },
 })
 
+# 23b. Borderline-low retry following a borderline first attempt -- evolution should note slight improvement
+scenarios.append({
+    'name': 'selfexplanation_borderline_retry',
+    'task': 'selfexplanation',
+    'previous_answer': PREV_SE_BORDERLINE,
+    'data': {
+        'target_sentence': "The most common heart problem is a heart attack, or coronary thrombosis, which is caused when a coronary artery becomes blocked.",
+        'context': HD_CONTEXT,
+        'student_response': "A heart attack — coronary thrombosis — happens when a coronary artery is blocked, so the heart muscle stops getting the oxygen it needs.",
+    },
+})
+
 # 24. Good self-explanation on heart disease context -- expect no retry
 scenarios.append({
     'name': 'selfexplanation_good_hd',
     'task': 'selfexplanation',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "The blockage of a coronary artery is usually caused by a thrombus, or blood clot.",
         'context': HD_CONTEXT,
@@ -338,7 +538,7 @@ scenarios.append({
 scenarios.append({
     'name': 'selfexplanation_copypaste',
     'task': 'selfexplanation',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Usually the heart recovers, but the heart valves are left with scars.",
         'context': HD_CONTEXT,
@@ -346,11 +546,11 @@ scenarios.append({
     },
 })
 
-# 26. Improved retry after poor first attempt -- good content on retry
+# 26. Improved retry after poor first attempt -- evolution should note clear improvement
 scenarios.append({
     'name': 'selfexplanation_improved_retry',
     'task': 'selfexplanation',
-    'is_retry': True,
+    'previous_answer': PREV_SE_OK,
     'data': {
         'target_sentence': "Hemoglobin also contains iron, which gives blood its red color.",
         'context': RBC_CONTEXT,
@@ -364,7 +564,7 @@ scenarios.append({
 scenarios.append({
     'name': 'selfexplanation_multitext_basic_paraphrase',
     'task': 'selfexplanation_multitext',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "In recent times, climate researchers have found that the earth's average temperature rose by approx. 0.5 °C between 1850 and 2004.",
         'context': CLIMATE_MULTITEXT_CONTEXT,
@@ -376,7 +576,7 @@ scenarios.append({
 scenarios.append({
     'name': 'selfexplanation_multitext_intertext',
     'task': 'selfexplanation_multitext',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Since pre-industrial times (around 1750) the concentration of carbon dioxide (CO2) has increased by around 31 per cent, the concentration of methane (CH4) has increased by around 151 per cent and the concentration of nitrogen oxide (N2O) has increased by around 17 per cent.",
         'context': CLIMATE_MULTITEXT_CONTEXT,
@@ -388,7 +588,7 @@ scenarios.append({
 scenarios.append({
     'name': 'selfexplanation_multitext_strong_elaboration',
     'task': 'selfexplanation_multitext',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Our CO2 discharges from, among other things, the burning of fossil fuels do not form part of this cycle and result in surplus CO2 which remains in the atmosphere for a long time.",
         'context': CLIMATE_MULTITEXT_CONTEXT,
@@ -400,7 +600,7 @@ scenarios.append({
 scenarios.append({
     'name': 'selfexplanation_multitext_source_evaluation',
     'task': 'selfexplanation_multitext',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Since pre-industrial times (around 1750) the concentration of carbon dioxide (CO2) has increased by around 31 per cent, the concentration of methane (CH4) has increased by around 151 per cent and the concentration of nitrogen oxide (N2O) has increased by around 17 per cent.",
         'context': CLIMATE_MULTITEXT_CONTEXT,
@@ -412,7 +612,7 @@ scenarios.append({
 scenarios.append({
     'name': 'selfexplanation_multitext_offtarget',
     'task': 'selfexplanation_multitext',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "These manmade discharges of CO2 are first and foremost due to the consumption of fossil fuels (coal, oil and gas) and the deforestation of tropical regions.",
         'context': CLIMATE_MULTITEXT_CONTEXT,
@@ -424,7 +624,7 @@ scenarios.append({
 scenarios.append({
     'name': 'selfexplanation_multitext_gibberish',
     'task': 'selfexplanation_multitext',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "Stronger storms, more hurricanes and increasingly tumultuous weather are just a few of the negative consequences we can expect in the next few years.",
         'context': CLIMATE_MULTITEXT_CONTEXT,
@@ -432,11 +632,11 @@ scenarios.append({
     },
 })
 
-# 33. Gibberish as retry -- should NOT get try-again prompt
+# 33. Gibberish as retry -- should NOT get try-again prompt; evolution should note no improvement
 scenarios.append({
     'name': 'selfexplanation_multitext_gibberish_retry',
     'task': 'selfexplanation_multitext',
-    'is_retry': True,
+    'previous_answer': PREV_SE_MULTITEXT_GIBBERISH,
     'data': {
         'target_sentence': "Stronger storms, more hurricanes and increasingly tumultuous weather are just a few of the negative consequences we can expect in the next few years.",
         'context': CLIMATE_MULTITEXT_CONTEXT,
@@ -444,11 +644,11 @@ scenarios.append({
     },
 })
 
-# 34. Minimal but on-topic -- borderline
+# 34. Minimal but on-topic -- borderline (Overall likely Fair quality), may get paraphrase example
 scenarios.append({
     'name': 'selfexplanation_multitext_minimal',
     'task': 'selfexplanation_multitext',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "The Arctic ice is melting so quickly that a sea passage between the Atlantic Ocean and the Pacific Ocean may be accessible to ordinary ships during the summer by 2050.",
         'context': CLIMATE_MULTITEXT_CONTEXT,
@@ -456,11 +656,23 @@ scenarios.append({
     },
 })
 
+# 34b. Improved retry of a borderline first attempt -- evolution should note clear improvement
+scenarios.append({
+    'name': 'selfexplanation_multitext_improved_retry',
+    'task': 'selfexplanation_multitext',
+    'previous_answer': PREV_SE_MULTITEXT_BORDERLINE,
+    'data': {
+        'target_sentence': "The Arctic ice is melting so quickly that a sea passage between the Atlantic Ocean and the Pacific Ocean may be accessible to ordinary ships during the summer by 2050.",
+        'context': CLIMATE_MULTITEXT_CONTEXT,
+        'student_response': "Source D says rising Arctic temperatures could open a shipping route between the Atlantic and Pacific by 2050. This fits with Source A's point that human-driven warming is now changing the climate, and Source D adds an economic side — the new passage would cut the London–Tokyo route by thousands of kilometres.",
+    },
+})
+
 # 35. Copy-paste of target sentence -- poor
 scenarios.append({
     'name': 'selfexplanation_multitext_copypaste',
     'task': 'selfexplanation_multitext',
-    'is_retry': False,
+    'previous_answer': None,
     'data': {
         'target_sentence': "If the circulation of the Atlantic is disturbed, we could have a fall in the average temperature of 3-5 °C.",
         'context': CLIMATE_MULTITEXT_CONTEXT,
@@ -478,12 +690,13 @@ for scenario in scenarios:
     result = llm_scoring.feedback(
         scenario['data'],
         scenario['task'],
-        is_retry=scenario['is_retry'],
+        previous_answer=scenario['previous_answer'],
     )
     results.append({
         'name': scenario['name'],
         'task': scenario['task'],
-        'is_retry': scenario['is_retry'],
+        'is_retry': scenario['previous_answer'] is not None,
+        'previous_answer': scenario['previous_answer'],
         'student_response': scenario['data']['student_response'],
         'target_sentence': scenario['data'].get('target_sentence', ''),
         'scores': result['scores'],
