@@ -1,3 +1,4 @@
+import os
 import torch
 import json
 from os import path
@@ -8,16 +9,16 @@ class LLMScoring:
     # Qwen3-4B bfloat16, max_model_len=4096: ~9.4 GB weights + ~0.6 GB KV cache + 15% overhead
     _SCORING_MODEL_MEMORY_GB = 16.0
     # Feedback model with bitsandbytes 4-bit quantization (3–7B range)
-    _FEEDBACK_MODEL_MEMORY_GB = 8.0
+    _FEEDBACK_MODEL_MEMORY_GB = 16.0
 
     @staticmethod
     def _gpu_memory_utilization(target_gb: float) -> float:
-        """Return the gpu_memory_utilization fraction that allocates target_gb of VRAM
-        from whatever is currently free, so the absolute amount stays constant even when
-        other processes are using GPU memory."""
-        free_mem, _ = torch.cuda.mem_get_info()
-        target_bytes = target_gb * (1024 ** 3)
-        return min(target_bytes / free_mem, 0.95)
+        """Return the gpu_memory_utilization fraction for vllm.
+        Uses min(free/total, target_fraction) so that concurrent vllm processes
+        on the same GPU don't inflate each other's profiled overhead and cause OOM."""
+        free_mem, total_mem = torch.cuda.mem_get_info()
+        target_fraction = target_gb * (1024 ** 3) / total_mem
+        return min(free_mem / total_mem, target_fraction)
 
     def __init__(self, model_path, feedback_model_name=None):
         """
