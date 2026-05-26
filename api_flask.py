@@ -4,16 +4,15 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
-device = "cuda"
-scorer = LLMScoring(
-    'upb-nlp/qwen3_4b_scoring_all_tasks_with_se_improved',
-    feedback_model_name='Qwen/Qwen3-4B-Instruct-2507',
-)
+
+scorer = None
 
 VALID_TASKS = ["selfexplanation", "thinkaloud", "summary", "paraphrasing", "selfexplanation_multitext"]
 
 @app.route('/score/<task>', methods=['POST'] )
 def score(task):
+    if scorer is None:
+        return "Scorer not initialized", 503
     if task not in VALID_TASKS:
         return f"Invalid Task (should be one of: {VALID_TASKS})", 400
     args = request.json
@@ -37,4 +36,8 @@ def feedback(task):
     return jsonify(result), 200
 
 if __name__ == '__main__':
+    scorer = LLMScoring(
+        'upb-nlp/qwen3_4b_scoring_all_tasks_with_se_improved',
+        feedback_model_name='Qwen/Qwen3-4B-Instruct-2507',
+    )
     app.run(host='0.0.0.0', port=5001)

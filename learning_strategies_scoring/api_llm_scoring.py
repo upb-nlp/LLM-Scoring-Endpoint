@@ -5,6 +5,20 @@ from vllm import LLM
 from vllm.sampling_params import SamplingParams
 
 class LLMScoring:
+    # Qwen3-4B bfloat16, max_model_len=4096: ~9.4 GB weights + ~0.6 GB KV cache + 15% overhead
+    _SCORING_MODEL_MEMORY_GB = 16.0
+    # Feedback model with bitsandbytes 4-bit quantization (3–7B range)
+    _FEEDBACK_MODEL_MEMORY_GB = 8.0
+
+    @staticmethod
+    def _gpu_memory_utilization(target_gb: float) -> float:
+        """Return the gpu_memory_utilization fraction that allocates target_gb of VRAM
+        from whatever is currently free, so the absolute amount stays constant even when
+        other processes are using GPU memory."""
+        free_mem, _ = torch.cuda.mem_get_info()
+        target_bytes = target_gb * (1024 ** 3)
+        return min(target_bytes / free_mem, 0.95)
+
     def __init__(self, model_path, feedback_model_name=None):
         """
         model_path: str
@@ -13,7 +27,7 @@ class LLMScoring:
             HuggingFace model name/path for generating feedback (e.g. 'meta-llama/Llama-3.2-3B-Instruct')
         """
 
-        self.model = LLM(model=model_path, dtype=torch.bfloat16, max_model_len=4096, gpu_memory_utilization=0.3, enable_prefix_caching=True)
+        self.model = LLM(model=model_path, dtype=torch.bfloat16, max_model_len=4096, gpu_memory_utilization=self._gpu_memory_utilization(self._SCORING_MODEL_MEMORY_GB), enable_prefix_caching=True)
         self.scoring_details_dir = path.join('learning_strategies_scoring', 'scoring_details')
         self.params = SamplingParams(temperature=0, max_tokens=300)
 
@@ -21,9 +35,10 @@ class LLMScoring:
             self.feedback_model = LLM(
                 model=feedback_model_name,
                 max_model_len=4096,
-                gpu_memory_utilization=0.3,
+                gpu_memory_utilization=self._gpu_memory_utilization(self._FEEDBACK_MODEL_MEMORY_GB),
                 quantization="bitsandbytes",
                 load_format="bitsandbytes",
+                enable_prefix_caching=True,
             )
         else:
             self.feedback_model = None
