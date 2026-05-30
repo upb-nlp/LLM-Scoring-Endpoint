@@ -1,9 +1,14 @@
-import os
-import torch
+import atexit
 import json
+import subprocess
+import time
+import torch
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from os import path
-from vllm import LLM
-from vllm.sampling_params import SamplingParams
+
+from openai import OpenAI
+
 
 class LLMScoring:
     # Qwen3-4B bfloat16, max_model_len=4096: ~9.4 GB weights + ~0.6 GB KV cache + 15% overhead
@@ -20,31 +25,81 @@ class LLMScoring:
         target_fraction = target_gb * (1024 ** 3) / total_mem
         return min(free_mem / total_mem, target_fraction)
 
-    def __init__(self, model_path, feedback_model_name=None):
+    @staticmethod
+    def _start_server(model, port, gpu_memory_utilization, extra_args=None):
+        cmd = [
+            "vllm", "serve", model,
+            "--port", str(port),
+            "--gpu-memory-utilization", str(round(gpu_memory_utilization, 4)),
+        ]
+        if extra_args:
+            cmd.extend(extra_args)
+        return subprocess.Popen(cmd)
+
+    @staticmethod
+    def _wait_for_server(port, timeout=300):
+        url = f"http://localhost:{port}/health"
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                with urllib.request.urlopen(url, timeout=2) as r:
+                    if r.status == 200:
+                        return
+            except Exception:
+                pass
+            time.sleep(3)
+        raise RuntimeError(f"vLLM server on port {port} did not become ready within {timeout}s")
+
+    def __init__(self, model_path, feedback_model_name=None, scoring_port=8000, feedback_port=8001):
         """
         model_path: str
             Path to the model to be used for scoring
         feedback_model_name: str, optional
             HuggingFace model name/path for generating feedback (e.g. 'meta-llama/Llama-3.2-3B-Instruct')
+        scoring_port: int
+            Port for the scoring vLLM server (default 8000)
+        feedback_port: int
+            Port for the feedback vLLM server (default 8001)
         """
-
-        self.model = LLM(model=model_path, dtype=torch.bfloat16, max_model_len=4096, gpu_memory_utilization=self._gpu_memory_utilization(self._SCORING_MODEL_MEMORY_GB), enable_prefix_caching=True)
         self.scoring_details_dir = path.join('learning_strategies_scoring', 'scoring_details')
-        self.params = SamplingParams(temperature=0, max_tokens=300)
 
+        scoring_gpu_util = self._gpu_memory_utilization(self._SCORING_MODEL_MEMORY_GB)
+        self._scoring_proc = self._start_server(
+            model_path, scoring_port, scoring_gpu_util,
+            extra_args=["--dtype", "bfloat16", "--enable-prefix-caching", "--max-model-len", "4096"],
+        )
+        self._wait_for_server(scoring_port)
+        self._scoring_client = OpenAI(api_key="EMPTY", base_url=f"http://localhost:{scoring_port}/v1")
+        self._scoring_model = model_path
+
+        self._feedback_proc = None
+        self._feedback_client = None
+        self._feedback_model = None
         if feedback_model_name:
-            self.feedback_model = LLM(
-                model=feedback_model_name,
-                max_model_len=4096,
-                gpu_memory_utilization=self._gpu_memory_utilization(self._FEEDBACK_MODEL_MEMORY_GB),
-                quantization="bitsandbytes",
-                load_format="bitsandbytes",
-                enable_prefix_caching=True,
+            feedback_gpu_util = self._gpu_memory_utilization(self._FEEDBACK_MODEL_MEMORY_GB)
+            self._feedback_proc = self._start_server(
+                feedback_model_name, feedback_port, feedback_gpu_util,
+                extra_args=[
+                    "--enable-prefix-caching", "--max-model-len", "4096",
+                    "--quantization", "bitsandbytes", "--load-format", "bitsandbytes",
+                ],
             )
-        else:
-            self.feedback_model = None
-        self.feedback_params = SamplingParams(temperature=0.7, max_tokens=512)
-    
+            self._wait_for_server(feedback_port)
+            self._feedback_client = OpenAI(api_key="EMPTY", base_url=f"http://localhost:{feedback_port}/v1")
+            self._feedback_model = feedback_model_name
+
+        atexit.register(self._shutdown)
+
+    def _shutdown(self):
+        for proc in (self._scoring_proc, self._feedback_proc):
+            if proc is not None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    proc.wait()
+
     def generate_response(self, formatted_prompt):
         """
         formatted_prompt: str
@@ -53,17 +108,14 @@ class LLMScoring:
         Returns:
             str: Generated response
         """
-        tokenizer = self.model.get_tokenizer()
-        text = tokenizer.apply_chat_template(
-            [{"role": "user", "content": formatted_prompt}],
-            add_special_tokens=False,
-            tokenize=False,
-            add_generation_prompt=True,
+        response = self._scoring_client.chat.completions.create(
+            model=self._scoring_model,
+            messages=[{"role": "user", "content": formatted_prompt}],
+            temperature=0,
+            max_tokens=300,
         )
-        response = self.model.generate([text], self.params)
-        raw = response[0].outputs[0].text
-        return raw
-    
+        return response.choices[0].message.content
+
     def extract_score_from_response(self, response, scoring_details=None):
         """
         response: str
@@ -119,7 +171,7 @@ class LLMScoring:
                 _add(key[2:], value)
 
         return scores
-    
+
     def prepare_scoring_rubric_prompt(self, scoring_details):
         """
         scoring_details: dict
@@ -128,7 +180,7 @@ class LLMScoring:
         Returns:
             str: Scoring rubric prompt
         """
-    
+
         task_prompt = scoring_details['task']
         scoring_rubric_prompt = ""
         for _, dict in scoring_details['scoring_rubric'].items():
@@ -155,7 +207,7 @@ class LLMScoring:
         if task == 'selfexplanation':
             if 'context' not in data or 'target_sentence' not in data or 'student_response' not in data:
                 raise ValueError('Data must contain context, target_sentence, and student_response fields')
-            
+
             scoring_details = json.load(open(path.join(self.scoring_details_dir, 'selfexplanation_thinkaloud_full_se.json'), 'r'))
             task_prompt, scoring_rubric_prompt = self.prepare_scoring_rubric_prompt(scoring_details)
 
@@ -187,7 +239,7 @@ class LLMScoring:
             task_prompt, scoring_rubric_prompt = self.prepare_scoring_rubric_prompt(scoring_details)
 
             prompt = f"{scoring_start_prompt}\n\n### Task description: {task_prompt}\n\n- Context: {data['context']}\n\n### Execution: {data['student_response']}\n\n### Scoring rubric:\n{scoring_rubric_prompt}"
-        
+
         elif task == 'paraphrasing':
             if 'target_sentence' not in data or 'student_response' not in data:
                 raise ValueError('Data must contain target_sentence and student_response fields')
@@ -209,7 +261,7 @@ class LLMScoring:
         Returns:
             dict: Dictionary containing the scores
         """
-        
+
         formatted_prompt = self.prepare_prompt(data, task)
         response = self.generate_response(formatted_prompt)
         scoring_details = self._get_scoring_details(task)
@@ -323,9 +375,13 @@ class LLMScoring:
             f"Return only the paraphrased sentence, nothing else.\n\n"
             f"Sentence: {sentence}"
         )
-        messages = [{"role": "user", "content": prompt}]
-        response = self.feedback_model.chat(messages, self.feedback_params)
-        return response[0].outputs[0].text.strip()
+        response = self._feedback_client.chat.completions.create(
+            model=self._feedback_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=512,
+        )
+        return response.choices[0].message.content.strip()
 
     def _should_try_again(self, scores, task):
         """
@@ -423,38 +479,58 @@ class LLMScoring:
         Returns:
             dict: Dictionary containing 'scores' (dict), 'feedback' (str), and 'try_again' (bool)
         """
-        if self.feedback_model is None:
+        if self._feedback_client is None:
             raise ValueError("Feedback model not initialized. Pass feedback_model_name to __init__.")
 
         scores = self.score(data, task)
         scoring_details = self._get_scoring_details(task)
+        is_retry = previous_answer is not None
+
+        # Both flags depend only on scores, so resolve them before any LLM call.
+        try_again = self._should_try_again(scores, task) and not is_retry
+        need_paraphrase = (
+            not try_again
+            and self._scores_a_bit_low(scores, task)
+            and 'target_sentence' in data
+        )
 
         feedback_prompt = self._build_feedback_prompt(data, task, scores, scoring_details)
 
-        messages = [{"role": "user", "content": feedback_prompt}]
-        response = self.feedback_model.chat(messages, self.feedback_params)
-        feedback_text = response[0].outputs[0].text
+        def _call_feedback():
+            return self._feedback_client.chat.completions.create(
+                model=self._feedback_model,
+                messages=[{"role": "user", "content": feedback_prompt}],
+                temperature=0.7,
+                max_tokens=512,
+            ).choices[0].message.content
 
-        is_retry = previous_answer is not None
+        def _call_evolution():
+            prompt = self._build_evolution_prompt(data, task, scores, previous_answer, scoring_details)
+            return self._feedback_client.chat.completions.create(
+                model=self._feedback_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=512,
+            ).choices[0].message.content.strip()
 
-        if is_retry:
-            evolution_prompt = self._build_evolution_prompt(
-                data, task, scores, previous_answer, scoring_details
-            )
-            evolution_response = self.feedback_model.chat(
-                [{"role": "user", "content": evolution_prompt}], self.feedback_params
-            )
-            evolution_comment = evolution_response[0].outputs[0].text.strip()
-            feedback_text = f"{evolution_comment} {feedback_text}"
+        def _call_paraphrase():
+            return self._generate_paraphrase(data['target_sentence'])
 
-        try_again = False
-        if self._should_try_again(scores, task) and not is_retry:
+        with ThreadPoolExecutor() as pool:
+            f_feedback = pool.submit(_call_feedback)
+            f_evolution = pool.submit(_call_evolution) if is_retry else None
+            f_paraphrase = pool.submit(_call_paraphrase) if need_paraphrase else None
+
+        feedback_text = f_feedback.result()
+
+        if f_evolution is not None:
+            feedback_text = f"{f_evolution.result()} {feedback_text}"
+
+        if try_again:
             feedback_text += " Can you try again?"
-            try_again = True
 
-        if not try_again and self._scores_a_bit_low(scores, task) and 'target_sentence' in data:
-            paraphrased = self._generate_paraphrase(data['target_sentence'])
-            feedback_text += f" Here is a rephrased version of the sentence to help you: {paraphrased}"
+        if f_paraphrase is not None:
+            feedback_text += f" Here is a rephrased version of the sentence to help you: {f_paraphrase.result()}"
 
         return {
             'scores': scores,

@@ -40,4 +40,4 @@ if __name__ == '__main__':
         'upb-nlp/qwen3_4b_scoring_all_tasks_with_se_improved',
         feedback_model_name='Qwen/Qwen3-4B-Instruct-2507',
     )
-    app.run(host='0.0.0.0', port=5001)
+    app.run(host='0.0.0.0', port=5001, threaded=True)
